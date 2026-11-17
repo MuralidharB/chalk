@@ -26,7 +26,7 @@ facts:
       value: module
       src: package.json:8
       match: '"type": "module"'
-      note: require('chalk') does not work; docs must show import syntax.
+      note: Show import syntax. Do not claim require('chalk') fails; on Node.js 22.12+ require() loads it and returns the namespace (default export is .default).
 
   browser:
     - fact: Non-Node runtimes resolve color detection to the browser shim
@@ -66,10 +66,15 @@ facts:
       value: truecolor
       src: source/vendor/supports-color/index.js:146
       match: "env.COLORTERM === 'truecolor'"
-    - fact: TERM=dumb disables detected color
+    - fact: TERM=dumb disables auto-detected color only; a forced level still applies
       value: dumb
       src: source/vendor/supports-color/index.js:112
       match: "env.TERM === 'dumb'"
+      note: Returns the forced level (FORCE_COLOR=true/empty or --color give 1); a numeric FORCE_COLOR returns before this check. Not "suppresses all color".
+    - fact: The level returned for TERM=dumb is the forced level, else 0
+      value: "forceColor || 0"
+      src: source/vendor/supports-color/index.js:110
+      match: "const min = forceColor || 0;"
 
   cli_flags:
     # Flags read from the consuming program's argv (only before a `--` terminator).
