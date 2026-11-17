@@ -83,7 +83,7 @@ facts:
       value: "flagForceColor = noFlagForceColor;"
       src: source/vendor/supports-color/index.js:74
       match: "flagForceColor = noFlagForceColor;"
-      note: FORCE_COLOR=3 --no-color gives 3 and FORCE_COLOR=true --no-color gives 1. --no-color never overrides FORCE_COLOR.
+      note: FORCE_COLOR=3 --no-color gives 3; FORCE_COLOR=true --no-color enables color at the detected level (1 in a bare env). --no-color never overrides FORCE_COLOR.
     - fact: --color=256 and --color=16m/full/truecolor are checked before the numeric FORCE_COLOR return, so they win over it
       value: "--color=256"
       src: source/vendor/supports-color/index.js:90
