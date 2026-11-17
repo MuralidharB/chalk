@@ -1,0 +1,91 @@
+# Anchored facts for git2docs: exact strings the docs must reproduce that no extractor derives.
+# Every entry anchors to the line that proves it; git2docs re-resolves `match` at generation time.
+
+authority:
+  # Pointers only. These surfaces are extracted; do not copy them here.
+  public_api_types: source/index.d.ts
+  style_names: source/vendor/ansi-styles/index.js
+  package_manifest: package.json
+
+facts:
+  compatibility:
+    - fact: Minimum supported Node.js version
+      value: ">=22"
+      src: package.json:22
+      match: '"node": ">=22"'
+    - fact: Node.js versions tested in CI
+      value: "26"
+      src: .github/workflows/main.yml:13
+      match: "- 26"
+      note: Tested, not merely expected to work.
+    - fact: Node.js versions tested in CI
+      value: "22"
+      src: .github/workflows/main.yml:14
+      match: "- 22"
+    - fact: Package is ESM-only (no CommonJS build)
+      value: module
+      src: package.json:8
+      match: '"type": "module"'
+      note: require('chalk') does not work; docs must show import syntax.
+
+  browser:
+    - fact: Non-Node runtimes resolve color detection to the browser shim
+      value: ./source/vendor/supports-color/browser.js
+      src: package.json:17
+      match: '"default": "./source/vendor/supports-color/browser.js"'
+    - fact: Chromium brand version above 93 gets level 3 (truecolor) in the browser
+      value: "brand?.version > 93"
+      src: source/vendor/supports-color/browser.js:8
+      match: "brand?.version > 93"
+    - fact: Any other Chrome/Chromium user agent gets level 1 in the browser
+      value: "Chrome|Chromium"
+      src: source/vendor/supports-color/browser.js:13
+      match: "(?:Chrome|Chromium)"
+
+  color_level:
+    - fact: Error thrown for an invalid level (option or property)
+      value: The `level` should be an integer from 0 to 3
+      src: source/index.js:19
+      match: The `level` should be an integer from 0 to 3
+
+  environment_variables:
+    - fact: FORCE_COLOR=false disables color
+      value: "'false'"
+      src: source/vendor/supports-color/index.js:43
+      match: "env.FORCE_COLOR === 'false'"
+    - fact: FORCE_COLOR=true or empty FORCE_COLOR enables color with detected level
+      value: "'true'"
+      src: source/vendor/supports-color/index.js:47
+      match: "env.FORCE_COLOR === 'true' || env.FORCE_COLOR.length === 0"
+    - fact: Numeric FORCE_COLOR is an exact level, clamped to 3
+      value: "Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3)"
+      src: source/vendor/supports-color/index.js:55
+      match: "Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3)"
+      note: A numeric FORCE_COLOR is not a minimum; the terminal cannot raise it.
+    - fact: COLORTERM=truecolor selects level 3
+      value: truecolor
+      src: source/vendor/supports-color/index.js:146
+      match: "env.COLORTERM === 'truecolor'"
+    - fact: TERM=dumb disables detected color
+      value: dumb
+      src: source/vendor/supports-color/index.js:112
+      match: "env.TERM === 'dumb'"
+
+  cli_flags:
+    # Flags read from the consuming program's argv (only before a `--` terminator).
+    - fact: Flags that disable color
+      value: "--no-color, --no-colors, --color=false, --color=never"
+      src: source/vendor/supports-color/index.js:18-21
+      match: "hasFlag('no-color')"
+    - fact: Flags that enable color
+      value: "--color, --colors, --color=true, --color=always"
+      src: source/vendor/supports-color/index.js:25-28
+      match: "hasFlag('color=always')"
+    - fact: Flags that force truecolor (level 3)
+      value: "--color=16m, --color=full, --color=truecolor"
+      src: source/vendor/supports-color/index.js:84-86
+      match: "hasFlag('color=16m')"
+    - fact: Flag that forces 256 colors (level 2)
+      value: "--color=256"
+      src: source/vendor/supports-color/index.js:90
+      match: "hasFlag('color=256')"
