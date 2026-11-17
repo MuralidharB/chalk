@@ -47,6 +47,7 @@ facts:
       value: The `level` should be an integer from 0 to 3
       src: source/index.js:19
       match: The `level` should be an integer from 0 to 3
+      note: It is a plain Error (new Error), not a RangeError or TypeError.
 
   environment_variables:
     - fact: FORCE_COLOR=false disables color
@@ -75,6 +76,29 @@ facts:
       value: "forceColor || 0"
       src: source/vendor/supports-color/index.js:110
       match: "const min = forceColor || 0;"
+
+  detection_order:
+    # Precedence and gating inside supports-color that docs have repeatedly gotten backwards.
+    - fact: A FORCE_COLOR value replaces the result of the --color/--no-color flags
+      value: "flagForceColor = noFlagForceColor;"
+      src: source/vendor/supports-color/index.js:74
+      match: "flagForceColor = noFlagForceColor;"
+      note: FORCE_COLOR=3 --no-color gives 3 and FORCE_COLOR=true --no-color gives 1. --no-color never overrides FORCE_COLOR.
+    - fact: --color=256 and --color=16m/full/truecolor are checked before the numeric FORCE_COLOR return, so they win over it
+      value: "--color=256"
+      src: source/vendor/supports-color/index.js:90
+      match: "hasFlag('color=256')"
+      note: FORCE_COLOR=1 --color=256 gives 2.
+    - fact: A non-TTY stream with no forced color returns 0 before any CI detection runs
+      value: "0"
+      src: source/vendor/supports-color/index.js:106
+      match: "if (haveStream && !streamIsTTY && forceColor === undefined) {"
+      note: Piped CI output (the normal case for CI logs) is level 0 unless FORCE_COLOR or --color is set; the CI checks below are never reached.
+    - fact: GitHub Actions, Gitea Actions and CircleCI give level 3 only once detection reaches the CI check (a TTY, or color forced non-numerically such as FORCE_COLOR=true)
+      value: "GITHUB_ACTIONS, GITEA_ACTIONS, CIRCLECI"
+      src: source/vendor/supports-color/index.js:131
+      match: "['GITHUB_ACTIONS', 'GITEA_ACTIONS', 'CIRCLECI']"
+      note: Do not say these CIs get level 3 automatically with no override. CI=true GITHUB_ACTIONS=true with piped stdout gives 0; adding FORCE_COLOR=true gives 3.
 
   cli_flags:
     # Flags read from the consuming program's argv (only before a `--` terminator).
